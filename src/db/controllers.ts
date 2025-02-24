@@ -1,28 +1,20 @@
-import { client } from './database';
-import { ObjectId } from 'mongodb';
+import db from './database';
 
-export const addBooking = async (userId: number, fullName: string, day: string, time: string): Promise<boolean> => {
-  const db = client.db('botdb');
-  const bookings = db.collection('bookings');
-
+export function addBooking(userId: number, fullName: string, day: string, time: string): boolean {
   try {
-    // Проверяем, существует ли уже бронирование на это время
-    const existingBooking = await bookings.findOne({ day, time });
-    if (existingBooking) {
-      return true; // Бронирование уже существует
+    const stmt = db.prepare('INSERT INTO bookings (userId, fullName, day, time) VALUES (?, ?, ?, ?)');
+    stmt.run(userId, fullName, day, time);
+    return false; // Бронирование успешно
+  } catch (error) {
+    if ((error as any).code === 'SQLITE_CONSTRAINT') {
+      return true; // Время уже занято
     }
-
-    await bookings.insertOne({
-      userId,
-      fullName,
-      day,
-      time,
-      createdAt: new Date(),
-    });
-
-    return false; // Бронирование успешно создано
-  } catch (err) {
-    console.error('Error adding booking:', err);
-    throw err;
+    throw error;
   }
-};
+}
+
+export function isTimeTaken(day: string, time: string): boolean {
+  const stmt = db.prepare('SELECT COUNT(*) as count FROM bookings WHERE day = ? AND time = ?');
+  const result = stmt.get(day, time) as { count: number };
+  return result.count > 0;
+}

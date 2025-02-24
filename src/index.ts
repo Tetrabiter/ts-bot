@@ -1,10 +1,9 @@
+import 'dotenv/config';
 import { Telegraf, Markup } from 'telegraf';
 import { sendBookingNotification } from './utils/notifications'; // Импорт функции отправки уведомлений
-import { addBooking } from './db/controllers';
-import { connectDB } from './db/database';
+import { addBooking , isTimeTaken } from './db/controllers';
 
 const bot = new Telegraf('7770156807:AAFMlpJ7DhWCUle2Gj8i_-7pq-iXoWQLMmE'); // Замените на ваш токен бота
-connectDB(); // Подключение к MongoDB при запуске бота
 
 // Хранение состояния пользователя
 const userState: { [key: number]: { isRegistered: boolean; fullName?: string; } } = {};
@@ -13,8 +12,7 @@ const userState: { [key: number]: { isRegistered: boolean; fullName?: string; } 
 function generateTimeButtons(day: string) {
   const times = ['17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
   return times.map(time => {
-    // Вызов функции проверки состояния бронирования из базы данных можно добавить здесь
-    const isTaken = false; // Нужно заменить на реальную проверку из базы данных
+    const isTaken = isTimeTaken(day, time);
     const buttonText = isTaken ? `❌ ${time}` : `✅ ${time}`;
     return Markup.button.callback(buttonText, `${day}_${time}`);
   });
