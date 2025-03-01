@@ -24,6 +24,47 @@ function generateDayButtons() {
   return days.map(day => Markup.button.callback(day, `day_${day}`));
 }
 
+// Проверка дня недели 
+const now = new Date();
+
+function getDateFromDay(day: string): Date{
+  const daysOfWeek: {[key: string]: number} ={
+        'Понедельник': 1,
+        'Вторник': 2,
+        'Среда': 3,
+        'Четверг': 4,
+        'Пятница': 5
+  };
+
+  const now = new Date();
+  const currentDay = now.getDay();
+  const targetDay = daysOfWeek[day];
+
+  let diff = targetDay - currentDay;
+  if(diff < 0){
+    diff += 7;
+  }
+
+
+  const bookingDate = new Date(now);
+  bookingDate.setDate(now.getDate() + diff);
+  return bookingDate;
+}
+
+function isTimeInPast(bookingDate: Date, timeSlot: string): boolean{
+  const now = new Date();
+
+  if(bookingDate < now){
+    return true;
+  }
+
+  const [startHour, startMinute] = timeSlot.split('-')[0].split(':').map(Number);
+  const bookingTime = new Date(bookingDate);
+  bookingTime.setHours(startHour, startMinute, 0, 0);
+
+  return bookingTime < now;
+}
+
 bot.start((ctx) => {
   const userId = ctx.from.id;
   if (!userState[userId]) {
@@ -81,6 +122,25 @@ bot.action(/(.+)_(.+)/, async (ctx) => {
   }
 });
 
+bot.action(/(.+)_(.+)/, async (ctx) => {
+  const [day, time] = ctx.match.slice(1);
+  const fullName = userState[ctx.from.id]?.fullName || 'Пользователь';
+
+  const bookingDate = getDateFromDay(day);
+
+  if (isTimeInPast(bookingDate, time)) {
+      return ctx.reply('Вы не можете забронировать прошедшее время. Выберите другое время.');
+  }
+
+  const bookingExists = await addBooking(ctx.from.id, fullName, day, time);
+  
+  if (bookingExists) {
+      ctx.reply('Это время уже занято. Пожалуйста, выберите другое время.');
+  } else {
+      ctx.reply(`Вы успешно забронировали время ${time} на ${day}.`);
+      sendBookingNotification(fullName, `${time} на ${day}`, ctx.chat?.id ?? 0);
+  }
+});
 
 bot.launch();
 

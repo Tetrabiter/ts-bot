@@ -1,9 +1,14 @@
 import db from './database';
 
 export function addBooking(userId: number, fullName: string, day: string, time: string): boolean {
+  const registrationDate = new Date().toLocaleDateString('ru-RU');
+
   try {
-    const stmt = db.prepare('INSERT INTO bookings (userId, fullName, day, time) VALUES (?, ?, ?, ?)');
-    stmt.run(userId, fullName, day, time);
+    const stmt = db.prepare(`
+      INSERT INTO bookings (userId, fullName, day, time, registrationDate) 
+      VALUES (?, ?, ?, ?, ?)'
+    `);
+    stmt.run(userId, fullName, day, time, registrationDate);
     return false; // Бронирование успешно
   } catch (error) {
     if ((error as any).code === 'SQLITE_CONSTRAINT') {
