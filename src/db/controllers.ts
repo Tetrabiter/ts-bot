@@ -6,7 +6,7 @@ export function addBooking(userId: number, fullName: string, day: string, time: 
   try {
     const stmt = db.prepare(`
       INSERT INTO bookings (userId, fullName, day, time, registrationDate) 
-      VALUES (?, ?, ?, ?, ?)'
+      VALUES (?, ?, ?, ?, ?)
     `);
     stmt.run(userId, fullName, day, time, registrationDate);
     return false; // Бронирование успешно
